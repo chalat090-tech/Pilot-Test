@@ -2,157 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Krung Thai Mascot Flappy</title>
   <style>
     body {
       margin: 0;
+      background: #e6f0ff;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: #e6f0ff;
+      overflow: hidden;
     }
     canvas {
       background: #dbe9ff;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      width: 100vw;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 720px;
     }
   </style>
-<style>
-  #controls {
-    position: fixed;
-    bottom: 20px;
-    display: flex;
-    gap: 10px;
-  }
-  #controls button {
-    padding: 12px 16px;
-    font-size: 16px;
-    border: none;
-    border-radius: 10px;
-    background: #0050b3;
-    color: white;
-  }
-</style>
 </head>
 <body>
-  <canvas id="game" width="400" height="600"></canvas>
-
-  <!-- Mobile Controls -->
-  <div id="controls">
-    <button onclick="setDifficulty('easy')">EASY</button>
-    <button onclick="setDifficulty('normal')">NORMAL</button>
-    <button onclick="setDifficulty('hard')">HARD</button>
-  </div>
+  <canvas id="game"></canvas>
 
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
-    // ---------------- CONFIG ----------------
-    // ---------------- DIFFICULTY SETTINGS ----------------
-const DIFFICULTIES = {
-  easy:   { gravity: 0.3, jump: -6, pipeGap: 220, pipeSpeed: 1.5 },
-  normal: { gravity: 0.45, jump: -8.5, pipeGap: 170, pipeSpeed: 2.5 },
-  hard:   { gravity: 0.6, jump: -10, pipeGap: 130, pipeSpeed: 3.5 }
-};
-
-let currentDifficulty = 'easy';
-let GRAVITY = DIFFICULTIES[currentDifficulty].gravity;
-let JUMP = DIFFICULTIES[currentDifficulty].jump;
-let PIPE_GAP = DIFFICULTIES[currentDifficulty].pipeGap;
-let PIPE_SPEED = DIFFICULTIES[currentDifficulty].pipeSpeed;
-const PIPE_WIDTH = 60;
-
-    // ---------------- IMAGE ----------------
-    const mascot = new Image();
-    mascot.src = "krungthai_mascot.png"; // optional image
+    function resizeCanvas() {
+      canvas.width = Math.min(window.innerWidth, 420);
+      canvas.height = Math.min(window.innerHeight, 720);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
     // ---------------- GAME STATE ----------------
+    let gameState = 'start'; // start | play | gameover
+
+    // ---------------- DIFFICULTY (VERY EASY) ----------------
+    const GRAVITY = 0.3;
+    const JUMP = -7;
+    const PIPE_GAP = 240; // wider gap
+    const PIPE_SPEED = 1.4;
+    const PIPE_WIDTH = 60;
+    const PIPE_DISTANCE = 320; // more distance between pipes
+
+    // ---------------- IMAGES ----------------
+    const mascot = new Image();
+    mascot.src = 'krungthai_mascot.png';
+
+    const logo = new Image();
+    logo.src = 'krungthai_logo.png'; // add logo image
+
     let bird = {
       x: 80,
-      y: 300,
-      width: 45,
-      height: 45,
+      y: canvas.height / 2,
+      width: 46,
+      height: 46,
       velocity: 0
     };
 
     let pipes = [];
     let score = 0;
-let highScore = localStorage.getItem('highScore') || 0;
-    let gameOver = false;
+    let highScore = localStorage.getItem('highScore') || 0;
 
-    // ---------------- PIPE ----------------
     function createPipe() {
-      const topHeight = Math.random() * 250 + 50;
+      const top = Math.random() * (canvas.height - PIPE_GAP - 200) + 100;
       pipes.push({
         x: canvas.width,
-        top: topHeight,
-        bottom: topHeight + PIPE_GAP,
+        top,
+        bottom: top + PIPE_GAP,
         passed: false
       });
     }
 
-    // ---------------- CONTROLS ----------------
     function flap() {
-      if (gameOver) resetGame();
+      if (gameState === 'start') {
+        resetGame();
+        gameState = 'play';
+      } else if (gameState === 'gameover') {
+        resetGame();
+        gameState = 'play';
+      }
       bird.velocity = JUMP;
     }
 
-    document.addEventListener("keydown", e => {
-      if (e.code === "Space") flap();
+    document.addEventListener('keydown', e => {
+      if (e.code === 'Space') flap();
     });
 
-    canvas.addEventListener("mousedown", flap);
-    canvas.addEventListener("touchstart", e => {
+    canvas.addEventListener('touchstart', e => {
       e.preventDefault();
       flap();
     });
 
-    // ---------------- DIFFICULTY SELECT ----------------
-    document.addEventListener("keydown", e => {
-      if (gameOver) {
-        if (e.key === '1') setDifficulty('easy');
-        if (e.key === '2') setDifficulty('normal');
-        if (e.key === '3') setDifficulty('hard');
-      }
-    });
-
-    function setDifficulty(level) {
-      currentDifficulty = level;
-      GRAVITY = DIFFICULTIES[level].gravity;
-      JUMP = DIFFICULTIES[level].jump;
-      PIPE_GAP = DIFFICULTIES[level].pipeGap;
-      PIPE_SPEED = DIFFICULTIES[level].pipeSpeed;
-      resetGame();
-    }
-
-    // ---------------- UPDATE ----------------
     function update() {
-      if (gameOver) return;
+      if (gameState !== 'play') return;
 
       bird.velocity += GRAVITY;
       bird.y += bird.velocity;
 
-      if (pipes.length === 0 || pipes[pipes.length - 1].x < 260) { // more space between pipes
+      if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - PIPE_DISTANCE) {
         createPipe();
       }
 
-      pipes.forEach(pipe => {
-        pipe.x -= PIPE_SPEED;
+      pipes.forEach(p => {
+        p.x -= PIPE_SPEED;
 
-        // Collision
         if (
-          bird.x + bird.width > pipe.x &&
-          bird.x < pipe.x + PIPE_WIDTH &&
-          (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+          bird.x + bird.width > p.x &&
+          bird.x < p.x + PIPE_WIDTH &&
+          (bird.y < p.top || bird.y + bird.height > p.bottom)
         ) {
-          gameOver = true;
+          gameState = 'gameover';
         }
 
-        // Score
-        if (!pipe.passed && pipe.x + PIPE_WIDTH < bird.x) {
-          pipe.passed = true;
+        if (!p.passed && p.x + PIPE_WIDTH < bird.x) {
+          p.passed = true;
           score++;
         }
       });
@@ -160,17 +127,22 @@ let highScore = localStorage.getItem('highScore') || 0;
       pipes = pipes.filter(p => p.x > -PIPE_WIDTH);
 
       if (bird.y < 0 || bird.y + bird.height > canvas.height) {
-        gameOver = true;
+        gameState = 'gameover';
+      }
+
+      if (gameState === 'gameover') {
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('highScore', highScore);
+        }
       }
     }
 
-    // ---------------- DRAW ----------------
     function drawBird() {
-      if (mascot.complete && mascot.naturalWidth !== 0) {
+      if (mascot.complete) {
         ctx.drawImage(mascot, bird.x, bird.y, bird.width, bird.height);
       } else {
-        // fallback if image not loaded
-        ctx.fillStyle = "#0050b3";
+        ctx.fillStyle = '#0050b3';
         ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
       }
     }
@@ -179,55 +151,60 @@ let highScore = localStorage.getItem('highScore') || 0;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Pipes
-      ctx.fillStyle = "#0050b3";
-      pipes.forEach(pipe => {
-        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
-        ctx.fillRect(pipe.x, pipe.bottom, PIPE_WIDTH, canvas.height);
+      ctx.fillStyle = '#0050b3';
+      pipes.forEach(p => {
+        ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
+        ctx.fillRect(p.x, p.bottom, PIPE_WIDTH, canvas.height);
       });
 
-      // Bird / Mascot
+      if (gameState === 'start') {
+        ctx.fillStyle = '#0050b3';
+        ctx.font = '28px Arial';
+        ctx.textAlign = 'center';
+        if (logo.complete) {
+          ctx.drawImage(logo, canvas.width / 2 - 80, 100, 160, 80);
+        }
+        ctx.fillText('Flappy Krung Thai', canvas.width / 2, 240);
+        ctx.font = '18px Arial';
+        ctx.fillText('Tap or Press SPACE to Start', canvas.width / 2, 300);
+        ctx.textAlign = 'left';
+        return;
+      }
+
       drawBird();
 
-      // Score
-      ctx.fillStyle = "#000";
-      ctx.font = "24px Arial";
+      ctx.fillStyle = '#000';
+      ctx.font = '20px Arial';
       ctx.fillText(`Score: ${score}`, 15, 30);
-      ctx.fillText(`High Score: ${highScore}`, 15, 60);
-      ctx.fillText(`Mode: ${currentDifficulty.toUpperCase()}`, 15, 90);
 
-      if (gameOver) {
-        if (score > highScore) {
-          highScore = score;
-          localStorage.setItem('highScore', highScore);
-        }
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
+      if (gameState === 'gameover') {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#fff";
-        ctx.font = "32px Arial";
-        ctx.fillText("Game Over", 120, 260);
-        ctx.font = "18px Arial";
-        ctx.fillText("Click / Tap / SPACE to restart", 70, 310);
+        ctx.fillStyle = '#fff';
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = '18px Arial';
+        ctx.fillText('Tap to Restart', canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 + 50);
+        ctx.textAlign = 'left';
       }
     }
 
-    // ---------------- LOOP ----------------
+    function resetGame() {
+      bird.y = canvas.height / 2;
+      bird.velocity = 0;
+      pipes = [];
+      score = 0;
+    }
+
     function loop() {
       update();
       draw();
       requestAnimationFrame(loop);
     }
 
-    function resetGame() {
-  bird.y = 300;
-  bird.velocity = 0;
-  pipes = [];
-  score = 0;
-  gameOver = false;
-}
-
-    // START GAME (always starts, image or not)
     loop();
   </script>
 </body>
 </html>
-
