@@ -27,11 +27,19 @@
     const ctx = canvas.getContext("2d");
 
     // ---------------- CONFIG ----------------
-    const GRAVITY = 0.1; // very easy: slower fall
-    const JUMP = -3; // very easy: gentler jump
-    const PIPE_GAP = 250; // very easy: wider gap
-    const PIPE_SPEED = 0.5; // very easy: slower pipes
-    const PIPE_WIDTH = 50;
+    // ---------------- DIFFICULTY SETTINGS ----------------
+const DIFFICULTIES = {
+  easy:   { gravity: 0.3, jump: -7, pipeGap: 220, pipeSpeed: 1.5 },
+  normal: { gravity: 0.45, jump: -8.5, pipeGap: 170, pipeSpeed: 2.5 },
+  hard:   { gravity: 0.6, jump: -10, pipeGap: 130, pipeSpeed: 3.5 }
+};
+
+let currentDifficulty = 'easy';
+let GRAVITY = DIFFICULTIES[currentDifficulty].gravity;
+let JUMP = DIFFICULTIES[currentDifficulty].jump;
+let PIPE_GAP = DIFFICULTIES[currentDifficulty].pipeGap;
+let PIPE_SPEED = DIFFICULTIES[currentDifficulty].pipeSpeed;
+const PIPE_WIDTH = 60;
 
     // ---------------- IMAGE ----------------
     const mascot = new Image();
@@ -48,6 +56,7 @@
 
     let pipes = [];
     let score = 0;
+let highScore = localStorage.getItem('highScore') || 0;
     let gameOver = false;
 
     // ---------------- PIPE ----------------
@@ -73,6 +82,24 @@
 
     canvas.addEventListener("mousedown", flap);
     canvas.addEventListener("touchstart", flap);
+
+    // ---------------- DIFFICULTY SELECT ----------------
+    document.addEventListener("keydown", e => {
+      if (gameOver) {
+        if (e.key === '1') setDifficulty('easy');
+        if (e.key === '2') setDifficulty('normal');
+        if (e.key === '3') setDifficulty('hard');
+      }
+    });
+
+    function setDifficulty(level) {
+      currentDifficulty = level;
+      GRAVITY = DIFFICULTIES[level].gravity;
+      JUMP = DIFFICULTIES[level].jump;
+      PIPE_GAP = DIFFICULTIES[level].pipeGap;
+      PIPE_SPEED = DIFFICULTIES[level].pipeSpeed;
+      resetGame();
+    }
 
     // ---------------- UPDATE ----------------
     function update() {
@@ -139,8 +166,14 @@
       ctx.fillStyle = "#000";
       ctx.font = "24px Arial";
       ctx.fillText(`Score: ${score}`, 15, 30);
+      ctx.fillText(`High Score: ${highScore}`, 15, 60);
+      ctx.fillText(`Mode: ${currentDifficulty.toUpperCase()}`, 15, 90);
 
       if (gameOver) {
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('highScore', highScore);
+        }
         ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#fff";
@@ -159,18 +192,15 @@
     }
 
     function resetGame() {
-      bird.y = 300;
-      bird.velocity = 0;
-      pipes = [];
-      score = 0;
-      gameOver = false;
-    }
+  bird.y = 300;
+  bird.velocity = 0;
+  pipes = [];
+  score = 0;
+  gameOver = false;
+}
 
     // START GAME (always starts, image or not)
     loop();
   </script>
 </body>
 </html>
-
-
-
