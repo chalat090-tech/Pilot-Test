@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Krung Thai Mascot Flappy</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #e6f0ff;
+    }
+    canvas {
+      background: #dbe9ff;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="400" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    // ---------------- CONFIG ----------------
+    const GRAVITY = 0.3; // very easy: slower fall
+    const JUMP = -7; // very easy: gentler jump
+    const PIPE_GAP = 220; // very easy: wider gap
+    const PIPE_SPEED = 1.5; // very easy: slower pipes
+    const PIPE_WIDTH = 60;
+
+    // ---------------- IMAGE ----------------
+    const mascot = new Image();
+    mascot.src = "krungthai_mascot.png"; // optional image
+
+    // ---------------- GAME STATE ----------------
+    let bird = {
+      x: 80,
+      y: 300,
+      width: 45,
+      height: 45,
+      velocity: 0
+    };
+
+    let pipes = [];
+    let score = 0;
+    let gameOver = false;
+
+    // ---------------- PIPE ----------------
+    function createPipe() {
+      const topHeight = Math.random() * 250 + 50;
+      pipes.push({
+        x: canvas.width,
+        top: topHeight,
+        bottom: topHeight + PIPE_GAP,
+        passed: false
+      });
+    }
+
+    // ---------------- CONTROLS ----------------
+    function flap() {
+      if (gameOver) resetGame();
+      bird.velocity = JUMP;
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.code === "Space") flap();
+    });
+
+    canvas.addEventListener("mousedown", flap);
+    canvas.addEventListener("touchstart", flap);
+
+    // ---------------- UPDATE ----------------
+    function update() {
+      if (gameOver) return;
+
+      bird.velocity += GRAVITY;
+      bird.y += bird.velocity;
+
+      if (pipes.length === 0 || pipes[pipes.length - 1].x < 260) { // more space between pipes
+        createPipe();
+      }
+
+      pipes.forEach(pipe => {
+        pipe.x -= PIPE_SPEED;
+
+        // Collision
+        if (
+          bird.x + bird.width > pipe.x &&
+          bird.x < pipe.x + PIPE_WIDTH &&
+          (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+        ) {
+          gameOver = true;
+        }
+
+        // Score
+        if (!pipe.passed && pipe.x + PIPE_WIDTH < bird.x) {
+          pipe.passed = true;
+          score++;
+        }
+      });
+
+      pipes = pipes.filter(p => p.x > -PIPE_WIDTH);
+
+      if (bird.y < 0 || bird.y + bird.height > canvas.height) {
+        gameOver = true;
+      }
+    }
+
+    // ---------------- DRAW ----------------
+    function drawBird() {
+      if (mascot.complete && mascot.naturalWidth !== 0) {
+        ctx.drawImage(mascot, bird.x, bird.y, bird.width, bird.height);
+      } else {
+        // fallback if image not loaded
+        ctx.fillStyle = "#0050b3";
+        ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Pipes
+      ctx.fillStyle = "#0050b3";
+      pipes.forEach(pipe => {
+        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
+        ctx.fillRect(pipe.x, pipe.bottom, PIPE_WIDTH, canvas.height);
+      });
+
+      // Bird / Mascot
+      drawBird();
+
+      // Score
+      ctx.fillStyle = "#000";
+      ctx.font = "24px Arial";
+      ctx.fillText(`Score: ${score}`, 15, 30);
+
+      if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
+        ctx.font = "32px Arial";
+        ctx.fillText("Game Over", 120, 260);
+        ctx.font = "18px Arial";
+        ctx.fillText("Click / Tap / SPACE to restart", 70, 310);
+      }
+    }
+
+    // ---------------- LOOP ----------------
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function resetGame() {
+      bird.y = 300;
+      bird.velocity = 0;
+      pipes = [];
+      score = 0;
+      gameOver = false;
+    }
+
+    // START GAME (always starts, image or not)
+    loop();
+  </script>
+</body>
+</html>
