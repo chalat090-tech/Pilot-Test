@@ -294,26 +294,22 @@
       skylineNear.forEach(b => {
         ctx.fillRect(b.x, canvas.height - b.height, b.width, b.height);
       });
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Background
-      drawBackground();
-
-      // Buildings (replacing pipes)
+      // Buildings (pipes)
+      ctx.fillStyle = '#0050b3';
       pipes.forEach(p => {
-        drawBuilding(p.x, 0, PIPE_WIDTH, p.top);
-        drawBuilding(p.x, p.bottom, PIPE_WIDTH, canvas.height - p.bottom);
+        ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
+        ctx.fillRect(p.x, p.bottom, PIPE_WIDTH, canvas.height);
       });
 
+      // Start screen
       if (gameState === 'start') {
         ctx.fillStyle = '#0050b3';
         ctx.font = '28px Arial';
         ctx.textAlign = 'center';
-
         if (logo.complete) {
           ctx.drawImage(logo, canvas.width / 2 - 80, 100, 160, 80);
         }
-
         ctx.fillText('Flappy Krung Thai', canvas.width / 2, 240);
         ctx.font = '18px Arial';
         ctx.fillText('Tap or Press SPACE to Start', canvas.width / 2, 300);
@@ -321,12 +317,15 @@
         return;
       }
 
+      // Bird
       drawBird();
 
+      // Score
       ctx.fillStyle = '#000';
       ctx.font = '20px Arial';
       ctx.fillText(`Score: ${score}`, 15, 30);
 
+      // Game over
       if (gameState === 'gameover') {
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
