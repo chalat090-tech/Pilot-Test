@@ -15,6 +15,7 @@
       overflow: hidden;
     }
     canvas {
+      background: #dbe9ff;
       width: 100vw;
       max-width: 420px;
       height: 100vh;
@@ -33,82 +34,26 @@
       canvas.width = Math.min(window.innerWidth, 420);
       canvas.height = Math.min(window.innerHeight, 720);
     }
+
     resizeCanvas();
-    initBackground();
     window.addEventListener('resize', resizeCanvas);
 
     // ---------------- GAME STATE ----------------
     let gameState = 'start';
 
-    // ---------------- GAME CONFIG ----------------
     const GRAVITY = 0.3;
     const JUMP = -7;
     const PIPE_GAP = 200;
-    const PIPE_SPEED = 2.0;
-    const PIPE_WIDTH = 70;
+    const PIPE_SPEED = 2;
+    const PIPE_WIDTH = 60;
     const PIPE_DISTANCE = 200;
 
     // ---------------- IMAGES ----------------
-
-    // Cartoon sky gradient colors
-    const skyTop = '#89CFF0';
-    const skyBottom = '#FFD1DC';
-
-    // Parallax skyline layers
-    let skylineFar = [];
-    let skylineNear = [];
-
-    // Stars & clouds
-    let stars = [];
-    let clouds = [];
-
-    function initBackground() {
-      skylineFar = [];
-      skylineNear = [];
-      stars = [];
-      clouds = [];
-
-      for (let i = 0; i < 6; i++) {
-        skylineFar.push({
-          x: i * 120,
-          width: 80,
-          height: 120 + Math.random() * 80
-        });
-      }
-
-      for (let i = 0; i < 5; i++) {
-        skylineNear.push({
-          x: i * 160,
-          width: 110,
-          height: 180 + Math.random() * 120
-        });
-      }
-
-      for (let i = 0; i < 30; i++) {
-        stars.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * (canvas.height * 0.5),
-          size: Math.random() * 2 + 1
-        });
-      }
-
-      for (let i = 0; i < 3; i++) {
-        clouds.push({
-          x: Math.random() * canvas.width,
-          y: 60 + Math.random() * 150,
-          size: 60 + Math.random() * 40,
-          speed: 0.2 + Math.random() * 0.3
-        });
-      }
-    }
     const mascot = new Image();
     mascot.src = 'krungthai_mascot.png';
 
     const logo = new Image();
     logo.src = 'krungthai_logo.png';
-
-    const backgroundImg = new Image();
-    backgroundImg.src = 'background_city.png'; // NEW background
 
     let bird = {
       x: 80,
@@ -133,7 +78,7 @@
     }
 
     function flap() {
-      if (gameState !== 'play') {
+      if (gameState === 'start' || gameState === 'gameover') {
         resetGame();
         gameState = 'play';
       }
@@ -150,31 +95,6 @@
     });
 
     function update() {
-      const dynamicSpeed = PIPE_SPEED + score * 0.05; // buildings move faster with score
-
-      // Move skyline far
-      skylineFar.forEach(b => {
-        b.x -= dynamicSpeed * 0.3;
-        if (b.x + b.width < 0) {
-          b.x = canvas.width + Math.random() * 100;
-        }
-      });
-
-      // Move skyline near
-      skylineNear.forEach(b => {
-        b.x -= dynamicSpeed * 0.6;
-        if (b.x + b.width < 0) {
-          b.x = canvas.width + Math.random() * 120;
-        }
-      });
-
-      // Move clouds
-      clouds.forEach(c => {
-        c.x -= c.speed;
-        if (c.x + c.size < 0) {
-          c.x = canvas.width + 50;
-        }
-      });
       if (gameState !== 'play') return;
 
       bird.velocity += GRAVITY;
@@ -185,7 +105,7 @@
       }
 
       pipes.forEach(p => {
-        p.x -= (PIPE_SPEED + score * 0.05);
+        p.x -= PIPE_SPEED;
 
         if (
           bird.x + bird.width > p.x &&
@@ -216,7 +136,7 @@
     }
 
     function drawBird() {
-      if (mascot.complete) {
+      if (mascot.complete && mascot.naturalWidth !== 0) {
         ctx.drawImage(mascot, bird.x, bird.y, bird.width, bird.height);
       } else {
         ctx.fillStyle = '#0050b3';
@@ -224,89 +144,25 @@
       }
     }
 
-    function drawBuilding(x, y, width, height) {
-      if (buildingImg.complete) {
-        ctx.drawImage(buildingImg, x, y, width, height);
-      } else {
-        ctx.fillStyle = '#0050b3';
-        ctx.fillRect(x, y, width, height);
-      }
-
-      // windows effect
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      for (let wy = y + 10; wy < y + height; wy += 25) {
-        for (let wx = x + 8; wx < x + width - 10; wx += 18) {
-          ctx.fillRect(wx, wy, 8, 10);
-        }
-      }
-    }
-
-    function drawBackground() {
-      if (backgroundImg.complete) {
-        ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
-      } else {
-        // gradient fallback
-        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        grad.addColorStop(0, '#9ed0ff');
-        grad.addColorStop(1, '#e6f0ff');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-
     function draw() {
-      // Gradient cartoon sky
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, skyTop);
-      gradient.addColorStop(1, skyBottom);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Stars
-      ctx.fillStyle = 'white';
-      stars.forEach(s => {
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Clouds
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      clouds.forEach(c => {
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.size * 0.5, 0, Math.PI * 2);
-        ctx.arc(c.x + c.size * 0.5, c.y + 10, c.size * 0.6, 0, Math.PI * 2);
-        ctx.arc(c.x - c.size * 0.5, c.y + 10, c.size * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Skyline far
-      ctx.fillStyle = '#9DB4C0';
-      skylineFar.forEach(b => {
-        ctx.fillRect(b.x, canvas.height - b.height, b.width, b.height);
-      });
-
-      // Skyline near
-      ctx.fillStyle = '#6C8EA0';
-      skylineNear.forEach(b => {
-        ctx.fillRect(b.x, canvas.height - b.height, b.width, b.height);
-      });
-
-      // Buildings (pipes)
+      // Pipes
       ctx.fillStyle = '#0050b3';
       pipes.forEach(p => {
         ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
         ctx.fillRect(p.x, p.bottom, PIPE_WIDTH, canvas.height);
       });
 
-      // Start screen
       if (gameState === 'start') {
         ctx.fillStyle = '#0050b3';
         ctx.font = '28px Arial';
         ctx.textAlign = 'center';
-        if (logo.complete) {
+
+        if (logo.complete && logo.naturalWidth !== 0) {
           ctx.drawImage(logo, canvas.width / 2 - 80, 100, 160, 80);
         }
+
         ctx.fillText('Flappy Krung Thai', canvas.width / 2, 240);
         ctx.font = '18px Arial';
         ctx.fillText('Tap or Press SPACE to Start', canvas.width / 2, 300);
@@ -314,15 +170,12 @@
         return;
       }
 
-      // Bird
       drawBird();
 
-      // Score
       ctx.fillStyle = '#000';
       ctx.font = '20px Arial';
       ctx.fillText(`Score: ${score}`, 15, 30);
 
-      // Game over
       if (gameState === 'gameover') {
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -354,4 +207,3 @@
   </script>
 </body>
 </html>
-
