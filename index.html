@@ -15,7 +15,6 @@
       overflow: hidden;
     }
     canvas {
-      background: #dbe9ff;
       width: 100vw;
       max-width: 420px;
       height: 100vh;
@@ -38,22 +37,28 @@
     window.addEventListener('resize', resizeCanvas);
 
     // ---------------- GAME STATE ----------------
-    let gameState = 'start'; // start | play | gameover
+    let gameState = 'start';
 
-    // ---------------- DIFFICULTY (VERY EASY) ----------------
+    // ---------------- GAME CONFIG ----------------
     const GRAVITY = 0.3;
     const JUMP = -7;
-    const PIPE_GAP = 200; // wider gap
+    const PIPE_GAP = 200;
     const PIPE_SPEED = 2.0;
-    const PIPE_WIDTH = 60;
-    const PIPE_DISTANCE = 200; // more distance between pipes
+    const PIPE_WIDTH = 70;
+    const PIPE_DISTANCE = 200;
 
     // ---------------- IMAGES ----------------
     const mascot = new Image();
     mascot.src = 'krungthai_mascot.png';
 
     const logo = new Image();
-    logo.src = 'krungthai_logo.png'; // add logo image
+    logo.src = 'krungthai_logo.png';
+
+    const backgroundImg = new Image();
+    backgroundImg.src = 'background_city.png'; // NEW background
+
+    const buildingImg = new Image();
+    buildingImg.src = 'building.png'; // NEW building texture
 
     let bird = {
       x: 80,
@@ -78,10 +83,7 @@
     }
 
     function flap() {
-      if (gameState === 'start') {
-        resetGame();
-        gameState = 'play';
-      } else if (gameState === 'gameover') {
+      if (gameState !== 'play') {
         resetGame();
         gameState = 'play';
       }
@@ -147,23 +149,57 @@
       }
     }
 
+    function drawBuilding(x, y, width, height) {
+      if (buildingImg.complete) {
+        ctx.drawImage(buildingImg, x, y, width, height);
+      } else {
+        ctx.fillStyle = '#0050b3';
+        ctx.fillRect(x, y, width, height);
+      }
+
+      // windows effect
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      for (let wy = y + 10; wy < y + height; wy += 25) {
+        for (let wx = x + 8; wx < x + width - 10; wx += 18) {
+          ctx.fillRect(wx, wy, 8, 10);
+        }
+      }
+    }
+
+    function drawBackground() {
+      if (backgroundImg.complete) {
+        ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        // gradient fallback
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#9ed0ff');
+        grad.addColorStop(1, '#e6f0ff');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Pipes
-      ctx.fillStyle = '#0050b3';
+      // Background
+      drawBackground();
+
+      // Buildings (replacing pipes)
       pipes.forEach(p => {
-        ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
-        ctx.fillRect(p.x, p.bottom, PIPE_WIDTH, canvas.height);
+        drawBuilding(p.x, 0, PIPE_WIDTH, p.top);
+        drawBuilding(p.x, p.bottom, PIPE_WIDTH, canvas.height - p.bottom);
       });
 
       if (gameState === 'start') {
         ctx.fillStyle = '#0050b3';
         ctx.font = '28px Arial';
         ctx.textAlign = 'center';
+
         if (logo.complete) {
           ctx.drawImage(logo, canvas.width / 2 - 80, 100, 160, 80);
         }
+
         ctx.fillText('Flappy Krung Thai', canvas.width / 2, 240);
         ctx.font = '18px Arial';
         ctx.fillText('Tap or Press SPACE to Start', canvas.width / 2, 300);
@@ -208,7 +244,3 @@
   </script>
 </body>
 </html>
-
-
-
-
