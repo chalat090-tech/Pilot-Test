@@ -34,6 +34,7 @@
       canvas.height = Math.min(window.innerHeight, 720);
     }
     resizeCanvas();
+    initBackground();
     window.addEventListener('resize', resizeCanvas);
 
     // ---------------- GAME STATE ----------------
@@ -48,6 +49,58 @@
     const PIPE_DISTANCE = 200;
 
     // ---------------- IMAGES ----------------
+
+    // Cartoon sky gradient colors
+    const skyTop = '#89CFF0';
+    const skyBottom = '#FFD1DC';
+
+    // Parallax skyline layers
+    let skylineFar = [];
+    let skylineNear = [];
+
+    // Stars & clouds
+    let stars = [];
+    let clouds = [];
+
+    function initBackground() {
+      skylineFar = [];
+      skylineNear = [];
+      stars = [];
+      clouds = [];
+
+      for (let i = 0; i < 6; i++) {
+        skylineFar.push({
+          x: i * 120,
+          width: 80,
+          height: 120 + Math.random() * 80
+        });
+      }
+
+      for (let i = 0; i < 5; i++) {
+        skylineNear.push({
+          x: i * 160,
+          width: 110,
+          height: 180 + Math.random() * 120
+        });
+      }
+
+      for (let i = 0; i < 30; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * (canvas.height * 0.5),
+          size: Math.random() * 2 + 1
+        });
+      }
+
+      for (let i = 0; i < 3; i++) {
+        clouds.push({
+          x: Math.random() * canvas.width,
+          y: 60 + Math.random() * 150,
+          size: 60 + Math.random() * 40,
+          speed: 0.2 + Math.random() * 0.3
+        });
+      }
+    }
     const mascot = new Image();
     mascot.src = 'krungthai_mascot.png';
 
@@ -100,6 +153,31 @@
     });
 
     function update() {
+      const dynamicSpeed = PIPE_SPEED + score * 0.05; // buildings move faster with score
+
+      // Move skyline far
+      skylineFar.forEach(b => {
+        b.x -= dynamicSpeed * 0.3;
+        if (b.x + b.width < 0) {
+          b.x = canvas.width + Math.random() * 100;
+        }
+      });
+
+      // Move skyline near
+      skylineNear.forEach(b => {
+        b.x -= dynamicSpeed * 0.6;
+        if (b.x + b.width < 0) {
+          b.x = canvas.width + Math.random() * 120;
+        }
+      });
+
+      // Move clouds
+      clouds.forEach(c => {
+        c.x -= c.speed;
+        if (c.x + c.size < 0) {
+          c.x = canvas.width + 50;
+        }
+      });
       if (gameState !== 'play') return;
 
       bird.velocity += GRAVITY;
@@ -110,7 +188,7 @@
       }
 
       pipes.forEach(p => {
-        p.x -= PIPE_SPEED;
+        p.x -= (PIPE_SPEED + score * 0.05);
 
         if (
           bird.x + bird.width > p.x &&
@@ -180,6 +258,42 @@
     }
 
     function draw() {
+      // Gradient cartoon sky
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, skyTop);
+      gradient.addColorStop(1, skyBottom);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Stars
+      ctx.fillStyle = 'white';
+      stars.forEach(s => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Clouds
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      clouds.forEach(c => {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.size * 0.5, 0, Math.PI * 2);
+        ctx.arc(c.x + c.size * 0.5, c.y + 10, c.size * 0.6, 0, Math.PI * 2);
+        ctx.arc(c.x - c.size * 0.5, c.y + 10, c.size * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Skyline far
+      ctx.fillStyle = '#9DB4C0';
+      skylineFar.forEach(b => {
+        ctx.fillRect(b.x, canvas.height - b.height, b.width, b.height);
+      });
+
+      // Skyline near
+      ctx.fillStyle = '#6C8EA0';
+      skylineNear.forEach(b => {
+        ctx.fillRect(b.x, canvas.height - b.height, b.width, b.height);
+      });
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Background
